@@ -1,6 +1,19 @@
 import heapq
 import numpy as np
+import sys
+import json
+import sqlite3
+import os
 
+
+def create_graph(rows):
+    graph = {}
+    for row in rows:
+        if row[0] not in graph.keys():
+            graph[row[0]] = [(row[1], row[2])]
+        else:
+            graph[row[0]].append((row[1], row[2]))
+    return graph
 
 def convert_to_undirected_graph(graph):
     undirected_graph = {}
@@ -97,31 +110,7 @@ def count_encounters(possible_paths, hunters_dict):
     return possible_paths
 
 
-if __name__ == '__main__':
-    # Example usage:
-    graph = {
-        'Tatooine': [('Dagobah', 6), ('Hoth', 6)],
-        'Dagobah': [('Endor', 4), ('Hoth', 1)],
-        'Hoth': [('Endor', 1)],
-    }
-
-    # Because routes can be travelled in any direction, we convert the graph to undirected
-    graph = convert_to_undirected_graph(graph)
-
-    bounty_hunters = [
-        {"planet": "Hoth", "day": 6},
-        {"planet": "Hoth", "day": 7},
-        {"planet": "Hoth", "day": 8}
-    ]
-    hunters_dict = convert_bounty_hunters_dict(bounty_hunters)
-
-    start_planet = 'Tatooine'
-    destination_planet = 'Endor'
-    car_autonomy = 6
-
-    count_down = 10
-    possible_paths = compute_paths(graph, start_planet, destination_planet, car_autonomy, count_down)
-    possible_paths = count_encounters(possible_paths, hunters_dict)
+def output_odds(possible_paths):
     if possible_paths:
         index_path = np.argmax([possible_paths[i]['proba'] for i in range(len(possible_paths))])
         proba = possible_paths[index_path]['proba']
@@ -129,6 +118,51 @@ if __name__ == '__main__':
     else:
         proba = 0
         path = []
+    return proba * 100, path
 
-    print(proba)
-    print(path)
+
+def main():
+    if len(sys.argv) != 3:
+        raise (
+            "Wrong usage of scripy calculate_odds.py. Script needs two arguments respectively the paths toward the millennium-falcon.json and empire.json files")
+
+    millenium_file = sys.argv[1]
+    empire_file = sys.argv[2]
+    dir_name = os.path.dirname(millenium_file)
+
+    with open(millenium_file, 'r') as f:
+        millenium_data = json.load(f)
+    with open(empire_file, 'r') as f:
+        empire_data = json.load(f)
+
+    db_path = os.path.join(dir_name, millenium_data['routes_db'])
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM ROUTES')
+    rows = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    graph = create_graph(rows)
+    graph = convert_to_undirected_graph(graph) # Because routes can be travelled in any direction, we convert the graph to undirected
+
+    car_autonomy = millenium_data['autonomy']
+    start_planet = millenium_data['departure']
+    destination_planet = millenium_data['arrival']
+
+    count_down = empire_data['countdown']
+    bounty_hunters=empire_data['bounty_hunters']
+    hunters_dict = convert_bounty_hunters_dict(bounty_hunters)
+
+    possible_paths = compute_paths(graph, start_planet, destination_planet, car_autonomy, count_down)
+    possible_paths = count_encounters(possible_paths, hunters_dict)
+    odds, final_path = output_odds(possible_paths)
+
+    print(odds)
+    print(final_path)
+
+
+if __name__ == '__main__':
+    # Example usage:
+    main()
+
