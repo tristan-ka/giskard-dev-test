@@ -127,9 +127,7 @@ def main():
     possible_paths = count_encounters(possible_paths, hunters_dict)
     odds, final_path, final_time_path = output_odds(possible_paths)
 
-    print(odds)
-    print(final_path)
-    print(final_time_path)
+    print("The odds of reaching " + destination_planet + " from " + start_planet + " are " + str(odds) + "%")
 
 
 if __name__ == '__main__':
