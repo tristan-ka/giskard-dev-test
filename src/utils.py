@@ -38,7 +38,7 @@ def convert_bounty_hunters_dict(bounty_hunters):
     return out_dict
 
 def load_default_millenium_data():
-    default_millenium_file = 'example1/millennium-falcon.json'
+    default_millenium_file = 'examples/example1/millennium-falcon.json'
     dir_name = os.path.dirname(default_millenium_file)
     with open(default_millenium_file, 'r') as f:
         millenium_data = json.load(f)
